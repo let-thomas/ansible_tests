@@ -1,0 +1,82 @@
+---
+- name: msbuild test
+  hosts: tfs_a1
+  #hosts: localhost
+  gather_facts: true
+  # vars_files:
+  #   - common_vars.yml
+  vars:
+    sw_name: msbuild
+    MSBUILD_DIR_ux: /tmp
+    MSBUILD_DIR: c:\kolehlaf
+  tasks:
+    - name: loading info for {{sw_name}}
+      include_vars: 
+        file: roles/sw/vars/msbuild.yml
+        name: sw_item
+    #  ignore_errors: yes
+    - debug:
+        var: sw_item
+
+    # - name:
+    #   debug:
+    #     msg: "ficura: {{item}}" 
+    #   loop: "{{sw_item.features_add}}"    
+    
+    # what is installed
+    - debug: var=ansible_os_family
+    - name: Check installed features (*ux)
+      find:
+        paths: "{{MSBUILD_DIR}}"
+        patterns: "*.f"
+        recurse: no
+      register: have_f_f
+      when: ansible_os_family == "Debian"
+    - name: Check installed features (Win)
+      win_find:
+        paths: "{{MSBUILD_DIR}}"
+        patterns: "*.f"
+        recurse: no
+      register: have_f_f
+      when: ansible_os_family == "Windows"
+
+    - debug:
+        var: have_f_f
+
+    ##- win_file:
+    # - stat:
+    #     path: "{{MSBUILD_DIR}}/{{sw_item.features_add[0]}}.f"
+    #   register: st
+    # - debug:
+    #     var: st
+    # install
+    # - debug:
+    #     msg: Doing install
+    #   when: st.stat.exists == false
+    - set_fact:
+        isInstalled: "{{have_f_f and not have_f_f.skipped and have_f_f.matched > 0}}"
+    - debug:
+        var: isInstalled
+    - include_role:
+        name: sw
+        tasks_from: "msbuild_install"
+      #when: st.stat.exists == false
+      when: not isInstalled
+
+    #upgrade
+    - include_role:
+        name: sw
+        tasks_from: "msbuild_upgrade"
+      #when: st.stat.exists == true
+      when: isInstalled
+
+    # post install
+    #OK!!!
+    # - name: mark what was installed
+    #   copy:
+    #     content: "{{item}}"
+    #     dest: "{{MSBUILD_DIR}}/{{item}}.f"
+    #     force: no
+    #     mode: 0644
+    #   loop: "{{sw_item.features_add}}"    
+
