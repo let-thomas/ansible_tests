@@ -1,0 +1,32 @@
+---
+- name: test & prepare another new name for localhost
+  hosts: localhost
+  tasks:
+    - name: proof working OpenStack
+      os_security_group:
+        cloud: my_cloud
+        state: present
+        name: default
+      register: sg_r
+    - debug:
+        var: sg_r
+
+    - name: add localhost using different name
+      add_host: 
+        name: hokus
+        groups: 
+          - pokus
+        ansible_connection: local
+
+- name: now fail
+  hosts: hokus
+#  hosts: pokus
+  tasks:
+    - name: proof working OpenStack
+      os_security_group:
+        cloud: my_cloud
+        state: present
+        name: default
+      register: sg_r
+    - debug:
+        var: sg_r
